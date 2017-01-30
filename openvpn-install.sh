@@ -218,7 +218,7 @@ else
 	read -n1 -r -p "Press any key to continue..."
 	if [[ "$OS" = 'debian' ]]; then
 		apt-get update
-		apt-get install openvpn iptables openssl ca-certificates -y
+		apt-get install openvpn iptables openssl ca-certificates build-essential libgcrypt11-dev -y
 	else
 		# Else, the distro is CentOS
 		yum install epel-release -y
@@ -228,6 +228,31 @@ else
 	if [[ -d /etc/openvpn/easy-rsa/ ]]; then
 		rm -rf /etc/openvpn/easy-rsa/
 	fi
+	
+	# Radius plugin
+	wget -O ~/radiusplugin_v2.1a_beta1.tar.gz http://www.nongnu.org/radiusplugin/radiusplugin_v2.1a_beta1.tar.gz
+	tar xzf ~/radiusplugin_v2.1a_beta1.tar.gz -C ~/
+	cd ~/radiusplugin_v2.1a_beta1
+	make
+	mkdir /etc/openvpn/radius
+	cp -r radiusplugin.so /etc/openvpn/radius
+	echo "NAS-Identifier=OpenVpn # The service type which is sent to the RADIUS server
+Service-Type=5
+Framed-Protocol=1
+NAS-Port-Type=5
+NAS-IP-Address=127.0.0.1
+OpenVPNConfig=/etc/openvpn/server.conf
+overwriteccfiles=true
+server
+{
+    acctport=1813
+    authport=1812
+    name=192.128.1.1
+    retry=1
+    wait=1
+    sharedsecret=radius_secret
+}" > /etc/openvpn/radiusplugin.conf
+
 	# Get easy-rsa
 	wget -O ~/EasyRSA-3.0.1.tgz https://github.com/OpenVPN/easy-rsa/releases/download/3.0.1/EasyRSA-3.0.1.tgz
 	tar xzf ~/EasyRSA-3.0.1.tgz -C ~/
@@ -262,6 +287,7 @@ dh dh.pem
 tls-auth ta.key 0
 topology subnet
 server 10.8.0.0 255.255.255.0
+plugin /etc/openvpn/radius/radiusplugin.so /etc/openvpn/radiusplugin.cnf
 ifconfig-pool-persist ipp.txt" > /etc/openvpn/server.conf
 	echo 'push "redirect-gateway def1 bypass-dhcp"' >> /etc/openvpn/server.conf
 	# DNS
