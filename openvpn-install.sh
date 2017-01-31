@@ -420,6 +420,7 @@ persist-tun
 remote-cert-tls server
 cipher AES-256-CBC
 comp-lzo
+auth-user-pass
 setenv opt block-outside-dns
 key-direction 1
 verb 3" > /etc/openvpn/client-common.txt
